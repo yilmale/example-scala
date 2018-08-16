@@ -9,12 +9,15 @@ import core.Syntax._
 import api.ScalaConversions._  // implicits
 import org.nlogo.core.AgentKind
 
+import java.io._
+
 
 class SampleScalaExtension extends DefaultClassManager {
   def load(manager: PrimitiveManager) {
     manager.addPrimitive("first-n-integers", new IntegerList)
     manager.addPrimitive("my-list", MyList)
     manager.addPrimitive("create-red-turtles", CreateRedTurtles)
+    manager.addPrimitive("patch-set-up", PatchSetUp)
   }
 }
 
@@ -37,6 +40,29 @@ object MyList extends Reporter {
   def report(args: Array[Argument], context: Context) =
     args.map(_.get).toLogoList
 
+}
+
+object PatchSetUp extends Command with nvm.CustomAssembled {
+  override def getSyntax = Syntax.reporterSyntax(right = List(CommandBlockType|OptionalType), ret = NumberType)
+  def perform(args: Array[api.Argument], context: api.Context): Unit = {
+    val world = context.getAgent.world.asInstanceOf[agent.World]
+    val eContext = context.asInstanceOf[nvm.ExtensionContext]
+    val nvmContext = eContext.nvmContext
+
+    val p : Patch = eContext.getAgent.asInstanceOf[Patch]
+    world.patchChangedColorAt(p.id.asInstanceOf[Int],Color.argbToColor(Color.getRGBByName("red")))
+
+    var vars=AgentVariables.getImplicitPatchVariables(false)
+    var pw = new PrintWriter(new File("/Users/yilmaz/IdeaProjects/example-scala/test.txt" ))
+    vars foreach {x => pw.print(x+ " ")}
+    println()
+    pw.close()
+  }
+
+  def assemble(a: nvm.AssemblerAssistant) {
+    a.block()
+    a.done()
+  }
 }
 
 
