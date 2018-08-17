@@ -43,20 +43,31 @@ object MyList extends Reporter {
 }
 
 object PatchSetUp extends Command with nvm.CustomAssembled {
-  override def getSyntax = Syntax.reporterSyntax(right = List(CommandBlockType|OptionalType), ret = NumberType)
+  override def getSyntax = Syntax.commandSyntax(right = List(CommandBlockType|OptionalType))
   def perform(args: Array[api.Argument], context: api.Context): Unit = {
     val world = context.getAgent.world.asInstanceOf[agent.World]
     val eContext = context.asInstanceOf[nvm.ExtensionContext]
     val nvmContext = eContext.nvmContext
 
     val p : Patch = eContext.getAgent.asInstanceOf[Patch]
-    world.patchChangedColorAt(p.id.asInstanceOf[Int],Color.argbToColor(Color.getRGBByName("red")))
+    val r = scala.util.Random
+    if (r.nextDouble() <= 0.5)
+      world.patchChangedColorAt(p.id.asInstanceOf[Int],Color.argbToColor(Color.getRGBByName("green")))
+    else
+      world.patchChangedColorAt(p.id.asInstanceOf[Int],Color.argbToColor(Color.getRGBByName("brown")))
 
-    var vars=AgentVariables.getImplicitPatchVariables(false)
+
+
     var pw = new PrintWriter(new File("/Users/yilmaz/IdeaProjects/example-scala/test.txt" ))
-    vars foreach {x => pw.print(x+ " ")}
-    println()
+    pw.println(p.getVariable(5))
+    p.setVariable(5,Some(20.0))
+    pw.println()
+    pw.println(p.getVariable(5))
+    pw.println()
+    var index = world.patchesOwnIndexOf("COUNTDOWN")
+    pw.println("Index is " + index)
     pw.close()
+
   }
 
   def assemble(a: nvm.AssemblerAssistant) {
