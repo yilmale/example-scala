@@ -66,6 +66,26 @@ object PatchSetUp extends Command with nvm.CustomAssembled {
     pw.println()
     var index = world.patchesOwnIndexOf("COUNTDOWN")
     pw.println("Index is " + index)
+    var glb1 = world.program.globals
+    var glb2 = world.program.interfaceGlobals
+    var glb3 = world.program.userGlobals
+
+    glb1 foreach { g=> pw.print(g + " ")}
+    pw.println()
+
+    glb2 foreach { g=> pw.print(g + " ")}
+    pw.println()
+
+    glb2 foreach { g=> pw.print(g + " ")}
+    pw.println()
+
+    var a : Int = 5
+    var s: String = s"test $a"
+
+
+    context.workspace.command("")
+
+
     pw.close()
 
   }
