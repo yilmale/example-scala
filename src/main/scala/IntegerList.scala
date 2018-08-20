@@ -18,6 +18,7 @@ class SampleScalaExtension extends DefaultClassManager {
     manager.addPrimitive("my-list", MyList)
     manager.addPrimitive("create-red-turtles", CreateRedTurtles)
     manager.addPrimitive("patch-set-up", PatchSetUp)
+    manager.addPrimitive("update", SetGlobal)
   }
 }
 
@@ -42,30 +43,46 @@ object MyList extends Reporter {
 
 }
 
+object SetGlobal extends Reporter {
+  override def getSyntax = Syntax.reporterSyntax(right = List(NumberType),
+    ret = NumberType, defaultOption = Some(1))
+  def report(args: Array[Argument], context: Context) = {
+    //args.map(_.get).toLogoList
+    val a: Double = args(0).getDoubleValue * 2
+    a.toLogoObject
+  }
+
+}
+
 object PatchSetUp extends Command with nvm.CustomAssembled {
-  override def getSyntax = Syntax.commandSyntax(right = List(CommandBlockType|OptionalType))
+  override def getSyntax = Syntax.commandSyntax(right = List(NumberType, CommandBlockType | OptionalType))
   def perform(args: Array[api.Argument], context: api.Context): Unit = {
     val world = context.getAgent.world.asInstanceOf[agent.World]
     val eContext = context.asInstanceOf[nvm.ExtensionContext]
     val nvmContext = eContext.nvmContext
+    var patchColor : String = null
 
     val p : Patch = eContext.getAgent.asInstanceOf[Patch]
     val r = scala.util.Random
-    if (r.nextDouble() <= 0.5)
-      world.patchChangedColorAt(p.id.asInstanceOf[Int],Color.argbToColor(Color.getRGBByName("green")))
-    else
-      world.patchChangedColorAt(p.id.asInstanceOf[Int],Color.argbToColor(Color.getRGBByName("brown")))
-
+    var index = world.patchesOwnIndexOf("COUNTDOWN")
+    var grt : Double = args(0).getDoubleValue
+    if (r.nextDouble() <= 0.5) {
+      world.patchChangedColorAt(p.id.asInstanceOf[Int], Color.argbToColor(Color.getRGBByName("green")))
+      patchColor = "green"
+      p.setVariable(index,grt.toLogoObject)
+    }
+    else {
+      world.patchChangedColorAt(p.id.asInstanceOf[Int], Color.argbToColor(Color.getRGBByName("brown")))
+      patchColor = "brown"
+      p.setVariable(index,(r.nextDouble()*grt).toLogoObject)
+    }
 
 
     var pw = new PrintWriter(new File("/Users/yilmaz/IdeaProjects/example-scala/test.txt" ))
-    pw.println(p.getVariable(5))
-    p.setVariable(5,Some(20.0))
+
+    pw.println(p.getVariable(index))
     pw.println()
-    pw.println(p.getVariable(5))
-    pw.println()
-    var index = world.patchesOwnIndexOf("COUNTDOWN")
-    pw.println("Index is " + index)
+
     var glb1 = world.program.globals
     var glb2 = world.program.interfaceGlobals
     var glb3 = world.program.userGlobals
@@ -79,11 +96,7 @@ object PatchSetUp extends Command with nvm.CustomAssembled {
     glb2 foreach { g=> pw.print(g + " ")}
     pw.println()
 
-    var a : Int = 5
-    var s: String = s"test $a"
-
-
-    context.workspace.command("")
+    pw.println("Color is " + p.pcolor)
 
 
     pw.close()
