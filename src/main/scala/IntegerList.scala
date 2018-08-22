@@ -17,7 +17,7 @@ class SampleScalaExtension extends DefaultClassManager {
     manager.addPrimitive("first-n-integers", new IntegerList)
     manager.addPrimitive("my-list", MyList)
     manager.addPrimitive("create-red-turtles", CreateRedTurtles)
-    manager.addPrimitive("patch-set-up", PatchSetUp)
+    manager.addPrimitive("patch-set-up", (new MyPatch).generateCommand())
     manager.addPrimitive("update", SetGlobal)
   }
 }
@@ -43,71 +43,114 @@ object MyList extends Reporter {
 
 }
 
-object SetGlobal extends Reporter {
-  override def getSyntax = Syntax.reporterSyntax(right = List(NumberType),
-    ret = NumberType, defaultOption = Some(1))
-  def report(args: Array[Argument], context: Context) = {
-    //args.map(_.get).toLogoList
-    val a: Double = args(0).getDoubleValue * 2
-    a.toLogoObject
+
+  object SetGlobal extends Reporter {
+    override def getSyntax = Syntax.reporterSyntax(right = List(NumberType),
+      ret = NumberType, defaultOption = Some(1))
+
+    def report(args: Array[Argument], context: Context) = {
+      //args.map(_.get).toLogoList
+      val a: Double = args(0).getDoubleValue * 2
+      a.toLogoObject
+    }
+
+  }
+
+
+class BasePatch {
+
+  class PatchSetUp extends Command with nvm.CustomAssembled {
+    override def getSyntax = Syntax.commandSyntax(right = List(NumberType, CommandBlockType | OptionalType))
+
+    def perform(args: Array[api.Argument], context: api.Context): Unit = {
+      var pw = new PrintWriter(new File("/Users/yilmaz/IdeaProjects/example-scala/test.txt"))
+
+      pw.println("Base patch set up")
+
+      pw.close()
+    }
+
+    def assemble(a: nvm.AssemblerAssistant) {
+      a.block()
+      a.done()
+    }
   }
 
 }
 
-object PatchSetUp extends Command with nvm.CustomAssembled {
-  override def getSyntax = Syntax.commandSyntax(right = List(NumberType, CommandBlockType | OptionalType))
-  def perform(args: Array[api.Argument], context: api.Context): Unit = {
-    val world = context.getAgent.world.asInstanceOf[agent.World]
-    val eContext = context.asInstanceOf[nvm.ExtensionContext]
-    val nvmContext = eContext.nvmContext
-    var patchColor : String = null
+trait PatchWithNoGrass {
+  class PatchSetUp extends Command with nvm.CustomAssembled {
+    override def getSyntax = Syntax.commandSyntax(right = List(NumberType, CommandBlockType | OptionalType))
 
-    val p : Patch = eContext.getAgent.asInstanceOf[Patch]
-    val r = scala.util.Random
-    var index = world.patchesOwnIndexOf("COUNTDOWN")
-    var grt : Double = args(0).getDoubleValue
-    if (r.nextDouble() <= 0.5) {
+    def perform(args: Array[api.Argument], context: api.Context): Unit = {
+      var pw = new PrintWriter(new File("/Users/yilmaz/IdeaProjects/example-scala/test.txt"))
+
+      pw.println("Patch with grass no grass set up")
+
+      val world = context.getAgent.world.asInstanceOf[agent.World]
+      val eContext = context.asInstanceOf[nvm.ExtensionContext]
+      val nvmContext = eContext.nvmContext
+      val p: Patch = eContext.getAgent.asInstanceOf[Patch]
       world.patchChangedColorAt(p.id.asInstanceOf[Int], Color.argbToColor(Color.getRGBByName("green")))
-      patchColor = "green"
-      p.setVariable(index,grt.toLogoObject)
-    }
-    else {
-      world.patchChangedColorAt(p.id.asInstanceOf[Int], Color.argbToColor(Color.getRGBByName("brown")))
-      patchColor = "brown"
-      p.setVariable(index,(r.nextDouble()*grt).toLogoObject)
     }
 
-
-    var pw = new PrintWriter(new File("/Users/yilmaz/IdeaProjects/example-scala/test.txt" ))
-
-    pw.println(p.getVariable(index))
-    pw.println()
-
-    var glb1 = world.program.globals
-    var glb2 = world.program.interfaceGlobals
-    var glb3 = world.program.userGlobals
-
-    glb1 foreach { g=> pw.print(g + " ")}
-    pw.println()
-
-    glb2 foreach { g=> pw.print(g + " ")}
-    pw.println()
-
-    glb2 foreach { g=> pw.print(g + " ")}
-    pw.println()
-
-    pw.println("Color is " + p.pcolor)
-
-
-    pw.close()
-
-  }
-
-  def assemble(a: nvm.AssemblerAssistant) {
-    a.block()
-    a.done()
+    def assemble(a: nvm.AssemblerAssistant) {
+      a.block()
+      a.done()
+    }
   }
 }
+
+trait PatchWithGrass {
+
+  class PatchSetUp extends Command with nvm.CustomAssembled {
+    override def getSyntax = Syntax.commandSyntax(right = List(NumberType, CommandBlockType | OptionalType))
+
+    def perform(args: Array[api.Argument], context: api.Context): Unit = {
+        var pw = new PrintWriter(new File("/Users/yilmaz/IdeaProjects/example-scala/test.txt"))
+
+        pw.println("Patch with grass set up")
+
+        val world = context.getAgent.world.asInstanceOf[agent.World]
+        val eContext = context.asInstanceOf[nvm.ExtensionContext]
+        val nvmContext = eContext.nvmContext
+        var patchColor: String = null
+
+        val p: Patch = eContext.getAgent.asInstanceOf[Patch]
+        val r = scala.util.Random
+        var index = world.patchesOwnIndexOf("COUNTDOWN")
+        var grt: Double = args(0).getDoubleValue
+        if (r.nextDouble() <= 0.5) {
+          world.patchChangedColorAt(p.id.asInstanceOf[Int], Color.argbToColor(Color.getRGBByName("green")))
+          patchColor = "green"
+          p.setVariable(index, grt.toLogoObject)
+        }
+        else {
+          world.patchChangedColorAt(p.id.asInstanceOf[Int], Color.argbToColor(Color.getRGBByName("brown")))
+          patchColor = "brown"
+          p.setVariable(index, (r.nextDouble() * grt).toLogoObject)
+        }
+
+        pw.close()
+      }
+
+      def assemble(a: nvm.AssemblerAssistant) {
+        a.block()
+        a.done()
+      }
+    }
+}
+
+
+class MyPatch extends BasePatch with PatchWithNoGrass {
+  def generateCommand(): PatchSetUp = {
+    new PatchSetUp
+  }
+}
+
+
+
+
 
 
 object CreateRedTurtles extends api.Command with nvm.CustomAssembled {
