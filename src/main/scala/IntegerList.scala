@@ -17,7 +17,8 @@ class SampleScalaExtension extends DefaultClassManager {
     manager.addPrimitive("first-n-integers", new IntegerList)
     manager.addPrimitive("my-list", MyList)
     manager.addPrimitive("create-red-turtles", CreateRedTurtles)
-    manager.addPrimitive("patch-set-up", (new MyPatch).generateCommand())
+    manager.addPrimitive("patch-set-up",
+      (new patchWithNoGrass_patchModel_base_AbstractBase.MyPatch).generateCommand())
     manager.addPrimitive("update", SetGlobal)
   }
 }
@@ -57,99 +58,34 @@ object MyList extends Reporter {
   }
 
 
-class BasePatch {
-
-  class PatchSetUp extends Command with nvm.CustomAssembled {
-    override def getSyntax = Syntax.commandSyntax(right = List(NumberType, CommandBlockType | OptionalType))
-
-    def perform(args: Array[api.Argument], context: api.Context): Unit = {
-      var pw = new PrintWriter(new File("/Users/yilmaz/IdeaProjects/example-scala/test.txt"))
-
-      pw.println("Base patch set up")
-
-      pw.close()
+object patchWithNoGrass_patchModel_base_AbstractBase {
+  trait patchWithNoGrass_MyPatch {
+    def generateCommand(): PatchSetUp = {
+      new PatchSetUp
     }
-
-    def assemble(a: nvm.AssemblerAssistant) {
-      a.block()
-      a.done()
-    }
-  }
-
-}
-
-trait PatchWithNoGrass {
-  class PatchSetUp extends Command with nvm.CustomAssembled {
-    override def getSyntax = Syntax.commandSyntax(right = List(NumberType, CommandBlockType | OptionalType))
-
-    def perform(args: Array[api.Argument], context: api.Context): Unit = {
-      var pw = new PrintWriter(new File("/Users/yilmaz/IdeaProjects/example-scala/test.txt"))
-
-      pw.println("Patch with grass no grass set up")
-
-      val world = context.getAgent.world.asInstanceOf[agent.World]
-      val eContext = context.asInstanceOf[nvm.ExtensionContext]
-      val nvmContext = eContext.nvmContext
-      val p: Patch = eContext.getAgent.asInstanceOf[Patch]
-      world.patchChangedColorAt(p.id.asInstanceOf[Int], Color.argbToColor(Color.getRGBByName("green")))
-    }
-
-    def assemble(a: nvm.AssemblerAssistant) {
-      a.block()
-      a.done()
-    }
-  }
-}
-
-trait PatchWithGrass {
-
-  class PatchSetUp extends Command with nvm.CustomAssembled {
-    override def getSyntax = Syntax.commandSyntax(right = List(NumberType, CommandBlockType | OptionalType))
-
-    def perform(args: Array[api.Argument], context: api.Context): Unit = {
+    class PatchSetUp extends Command with nvm.CustomAssembled {
+      override def getSyntax = Syntax.commandSyntax(right = List(NumberType, CommandBlockType | OptionalType))
+      def perform(args: Array[api.Argument], context: api.Context): Unit = {
         var pw = new PrintWriter(new File("/Users/yilmaz/IdeaProjects/example-scala/test.txt"))
-
-        pw.println("Patch with grass set up")
-
+        pw.println("Patch with grass no grass set up")
         val world = context.getAgent.world.asInstanceOf[agent.World]
         val eContext = context.asInstanceOf[nvm.ExtensionContext]
         val nvmContext = eContext.nvmContext
-        var patchColor: String = null
-
         val p: Patch = eContext.getAgent.asInstanceOf[Patch]
-        val r = scala.util.Random
-        var index = world.patchesOwnIndexOf("COUNTDOWN")
-        var grt: Double = args(0).getDoubleValue
-        if (r.nextDouble() <= 0.5) {
-          world.patchChangedColorAt(p.id.asInstanceOf[Int], Color.argbToColor(Color.getRGBByName("green")))
-          patchColor = "green"
-          p.setVariable(index, grt.toLogoObject)
-        }
-        else {
-          world.patchChangedColorAt(p.id.asInstanceOf[Int], Color.argbToColor(Color.getRGBByName("brown")))
-          patchColor = "brown"
-          p.setVariable(index, (r.nextDouble() * grt).toLogoObject)
-        }
-
-        pw.close()
+        world.patchChangedColorAt(p.id.asInstanceOf[Int], Color.argbToColor(Color.getRGBByName("green")))
       }
-
-      def assemble(a: nvm.AssemblerAssistant) {
+      def assemble(a: nvm.AssemblerAssistant): Unit = {
         a.block()
         a.done()
       }
     }
-}
-
-
-class MyPatch extends BasePatch with PatchWithNoGrass {
-  def generateCommand(): PatchSetUp = {
-    new PatchSetUp
   }
+  class MyPatch extends Base_FeatureModel with patchWithNoGrass_MyPatch {
+    val posx: Int = 10
+    val posy: Int = 20
+  }
+  class Base_FeatureModel
 }
-
-
-
 
 
 
