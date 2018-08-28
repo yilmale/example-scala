@@ -61,13 +61,91 @@ object MyList extends Reporter {
   }
 
 
+object PredatorActivity {
+  class Base_FeatureModel {}
+  class MyPredator extends Base_FeatureModel with P_MyPred {
+    def move()(implicit context: api.Context): Unit ={
+      val eContext = context.asInstanceOf[nvm.ExtensionContext]
+      val world = context.getAgent.world.asInstanceOf[agent.World]
+      var t = eContext.getAgent.asInstanceOf[org.nlogo.agent.Turtle]
+
+      val r = scala.util.Random
+      t.heading((t.heading + (r.nextDouble()*50)) - (r.nextDouble()*50))
+      t.jump(1.0)
+
+      //reduce energy
+      var index = world.turtlesOwnIndexOf("ENERGY")
+      t.setVariable(index,(t.getVariable(index).asInstanceOf[Double]-1).toLogoObject)
+    }
+    def reproduce()(implicit context: api.Context): Unit = {}
+    def death()(implicit context: api.Context): Unit = {}
+    def consume(e: Double)(implicit context: api.Context) : Unit ={
+     /* val world = context.getAgent.world.asInstanceOf[agent.World]
+      val eContext = context.asInstanceOf[nvm.ExtensionContext]
+      var index = world.turtlesOwnIndexOf("ENERGY")
+
+      var t = eContext.getAgent.asInstanceOf[org.nlogo.agent.Turtle]
+      var p = t.getPatchHere
+
+      val pw = new PrintWriter(new File("/Users/yilmaz/IdeaProjects/example-scala/test.txt" ))
+
+
+      var trts = p.turtlesHere().iterator()
+      while (trts.hasNext()) {
+        var b = trts.next()
+        if (b.getBreed().printName == "SHEEP")
+           pw.println("Found " + b.getBreed().printName)
+      }
+      pw.close()
+
+
+      let prey one-of sheep-here                    ; grab a random sheep
+      if prey != nobody  [                          ; did we get one?  if so,
+      ask prey [ die ]                            ; kill it, and...
+      set energy energy + wolf-gain-from-food     ; get energy from eating
+      ]
+    }*/
+
+  }
+  }
+
+  trait P_MyPred {
+    def move()(implicit context: api.Context): Unit
+    def reproduce()(implicit context: api.Context): Unit
+    def death()(implicit context: api.Context): Unit
+    def consume(e: Double)(implicit context: api.Context) : Unit
+
+    def generateCommand(): PredatorAction = {
+      new PredatorAction
+    }
+  }
+
+  class PredatorAction extends Command with nvm.CustomAssembled  {
+    override def getSyntax = Syntax.commandSyntax(right = List(NumberType, NumberType, CommandBlockType | OptionalType))
+
+    def perform(args: Array[api.Argument], context: api.Context): Unit = {
+      implicit val myContext: api.Context = context
+      val world = context.getAgent.world.asInstanceOf[agent.World]
+      val eContext = context.asInstanceOf[nvm.ExtensionContext]
+      val nvmContext = eContext.nvmContext
+    }
+
+    def assemble(a: nvm.AssemblerAssistant): Unit = {
+      a.block()
+      a.done()
+    }
+  }
+}
+
+
 object PreyActivity {
   class Base_FeatureModel {}
 
   class MyPrey extends Base_FeatureModel with P_MyPrey {
-    def move(context: api.Context, t: org.nlogo.agent.Turtle): Unit = {
+    def move()(implicit context: api.Context): Unit = {
       val eContext = context.asInstanceOf[nvm.ExtensionContext]
       val world = context.getAgent.world.asInstanceOf[agent.World]
+      var t = eContext.getAgent.asInstanceOf[org.nlogo.agent.Turtle]
 
       val r = scala.util.Random
       t.heading((t.heading + (r.nextDouble()*50)) - (r.nextDouble()*50))
@@ -79,10 +157,11 @@ object PreyActivity {
 
     }
 
-    def reproduce(context: api.Context,t: org.nlogo.agent.Turtle): Unit = {
+    def reproduce()(implicit context: api.Context): Unit = {
       val eContext = context.asInstanceOf[nvm.ExtensionContext]
       val world = context.getAgent.world.asInstanceOf[agent.World]
       var index = world.turtlesOwnIndexOf("ENERGY")
+      var t = eContext.getAgent.asInstanceOf[org.nlogo.agent.Turtle]
       val r = scala.util.Random
       var e : Double  = t.getVariable(index).asInstanceOf[Double]
       e = e / 2
@@ -92,28 +171,33 @@ object PreyActivity {
       c.heading(c.heading + (r.nextDouble()*360))
       c.jump(1.0)
     }
-    def death(context: api.Context,t: org.nlogo.agent.Turtle): Unit = {
+    def death()(implicit context: api.Context): Unit = {
+      val eContext = context.asInstanceOf[nvm.ExtensionContext]
       val world = context.getAgent.world.asInstanceOf[agent.World]
+      var t = eContext.getAgent.asInstanceOf[org.nlogo.agent.Turtle]
       var index = world.turtlesOwnIndexOf("ENERGY")
       if (t.getVariable(index).asInstanceOf[Double] < 0) t.die()
     }
 
-    def consume(context: api.Context,t: org.nlogo.agent.Turtle, e: Double): Unit = {
+    def consume(e: Double)(implicit context: api.Context): Unit = {
       val world = context.getAgent.world.asInstanceOf[agent.World]
+      val eContext = context.asInstanceOf[nvm.ExtensionContext]
       var index = world.turtlesOwnIndexOf("ENERGY")
+      var t = eContext.getAgent.asInstanceOf[org.nlogo.agent.Turtle]
       var p = t.getPatchHere
       if (p.pcolor==Color.argbToColor(Color.getRGBByName("green"))) {
         p.setVariable(2, Color.argbToColor(Color.getRGBByName("brown")))
         t.setVariable(index,(t.getVariable(index).asInstanceOf[Double]+e).toLogoObject)
       }
+
     }
   }
 
   trait P_MyPrey {
-    def move(context: api.Context,t: org.nlogo.agent.Turtle): Unit
-    def reproduce(context: api.Context,t: org.nlogo.agent.Turtle): Unit
-    def death(context: api.Context,t: org.nlogo.agent.Turtle): Unit
-    def consume(context: api.Context,t: org.nlogo.agent.Turtle, e: Double) : Unit
+    def move()(implicit context: api.Context): Unit
+    def reproduce()(implicit context: api.Context): Unit
+    def death()(implicit context: api.Context): Unit
+    def consume(e: Double)(implicit context: api.Context) : Unit
 
     def generateCommand(): PreyAction = {
       new PreyAction
@@ -124,6 +208,7 @@ object PreyActivity {
       override def getSyntax = Syntax.commandSyntax(right = List(NumberType, NumberType, CommandBlockType | OptionalType))
 
       def perform(args: Array[api.Argument], context: api.Context): Unit = {
+        implicit val myContext : api.Context = context
         val world = context.getAgent.world.asInstanceOf[agent.World]
         val eContext = context.asInstanceOf[nvm.ExtensionContext]
         val nvmContext = eContext.nvmContext
@@ -132,13 +217,10 @@ object PreyActivity {
         var index = world.turtlesOwnIndexOf("ENERGY")
         val r = scala.util.Random
 
-        move(context,t)
-
-        consume(context,t,args(0).getDoubleValue)
-
-        death(context,t)
-
-        if (r.nextDouble() < (args(1).getDoubleValue*0.01)) reproduce(context,t)
+        move()
+        consume(args(0).getDoubleValue)
+        death()
+        if (r.nextDouble() < (args(1).getDoubleValue*0.01)) reproduce()
 
       }
 
