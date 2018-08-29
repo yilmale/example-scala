@@ -1,16 +1,15 @@
 
 import org.nlogo.api.ScalaConversions._
 import org.nlogo.core.Syntax
-import org.nlogo.core.Syntax.{ NumberType, ListType, WildcardType, RepeatableType }
-
-
-import org.nlogo.{ agent, api, core, nvm }
+import org.nlogo.core.Syntax.{ListType, NumberType, RepeatableType, WildcardType}
+import org.nlogo.{agent, api, core, nvm}
 import org.nlogo.api._
 import core.Syntax._
-import api.ScalaConversions._  // implicits
+import api.ScalaConversions._
 import org.nlogo.core.AgentKind
-
 import java.io._
+
+import CreateRedTurtles.red
 
 
 class SampleScalaExtension extends DefaultClassManager {
@@ -18,10 +17,11 @@ class SampleScalaExtension extends DefaultClassManager {
     manager.addPrimitive("first-n-integers", new IntegerList)
     manager.addPrimitive("my-list", MyList)
     manager.addPrimitive("create-red-turtles", CreateRedTurtles)
-    manager.addPrimitive("patch-set-up",
-      (new patchWithNoGrass_patchModel_base_AbstractBase.MyPatch).generateCommand())
-    manager.addPrimitive("prey-action",
-      (new PreyActivity.MyPrey).generateCommand())
+    manager.addPrimitive("create-sheeps", CreateSheeps)
+    manager.addPrimitive("patch-set-up", (new patchWithGrass_patchModel_base_AbstractBase.MyPatch).generateCommandSetUp())
+    manager.addPrimitive("grass-grow", (new patchWithGrass_patchModel_base_AbstractBase.MyPatch).generateCommandGrow())
+    manager.addPrimitive("prey-action", (new PreyActivity.MyPrey).generateCommand())
+    manager.addPrimitive("predator-action", (new PredatorActivity.MyPredator).generateCommand())
     manager.addPrimitive("update", SetGlobal)
   }
 }
@@ -62,107 +62,28 @@ object MyList extends Reporter {
 
 
 object PredatorActivity {
+
   class Base_FeatureModel {}
+
   class MyPredator extends Base_FeatureModel with P_MyPred {
-    def move()(implicit context: api.Context): Unit ={
+    def move()(implicit context: api.Context, r: scala.util.Random, t: agent.Turtle): Unit = {
       val eContext = context.asInstanceOf[nvm.ExtensionContext]
       val world = context.getAgent.world.asInstanceOf[agent.World]
       var t = eContext.getAgent.asInstanceOf[org.nlogo.agent.Turtle]
 
       val r = scala.util.Random
-      t.heading((t.heading + (r.nextDouble()*50)) - (r.nextDouble()*50))
+      t.heading((t.heading + (r.nextDouble() * 50)) - (r.nextDouble() * 50))
       t.jump(1.0)
 
       //reduce energy
       var index = world.turtlesOwnIndexOf("ENERGY")
-      t.setVariable(index,(t.getVariable(index).asInstanceOf[Double]-1).toLogoObject)
-    }
-    def reproduce()(implicit context: api.Context): Unit = {}
-    def death()(implicit context: api.Context): Unit = {}
-    def consume(e: Double)(implicit context: api.Context) : Unit ={
-     /* val world = context.getAgent.world.asInstanceOf[agent.World]
-      val eContext = context.asInstanceOf[nvm.ExtensionContext]
-      var index = world.turtlesOwnIndexOf("ENERGY")
-
-      var t = eContext.getAgent.asInstanceOf[org.nlogo.agent.Turtle]
-      var p = t.getPatchHere
-
-      val pw = new PrintWriter(new File("/Users/yilmaz/IdeaProjects/example-scala/test.txt" ))
-
-
-      var trts = p.turtlesHere().iterator()
-      while (trts.hasNext()) {
-        var b = trts.next()
-        if (b.getBreed().printName == "SHEEP")
-           pw.println("Found " + b.getBreed().printName)
-      }
-      pw.close()
-
-
-      let prey one-of sheep-here                    ; grab a random sheep
-      if prey != nobody  [                          ; did we get one?  if so,
-      ask prey [ die ]                            ; kill it, and...
-      set energy energy + wolf-gain-from-food     ; get energy from eating
-      ]
-    }*/
-
-  }
-  }
-
-  trait P_MyPred {
-    def move()(implicit context: api.Context): Unit
-    def reproduce()(implicit context: api.Context): Unit
-    def death()(implicit context: api.Context): Unit
-    def consume(e: Double)(implicit context: api.Context) : Unit
-
-    def generateCommand(): PredatorAction = {
-      new PredatorAction
-    }
-  }
-
-  class PredatorAction extends Command with nvm.CustomAssembled  {
-    override def getSyntax = Syntax.commandSyntax(right = List(NumberType, NumberType, CommandBlockType | OptionalType))
-
-    def perform(args: Array[api.Argument], context: api.Context): Unit = {
-      implicit val myContext: api.Context = context
-      val world = context.getAgent.world.asInstanceOf[agent.World]
-      val eContext = context.asInstanceOf[nvm.ExtensionContext]
-      val nvmContext = eContext.nvmContext
+      t.setVariable(index, (t.getVariable(index).asInstanceOf[Double] - 1).toLogoObject)
     }
 
-    def assemble(a: nvm.AssemblerAssistant): Unit = {
-      a.block()
-      a.done()
-    }
-  }
-}
-
-
-object PreyActivity {
-  class Base_FeatureModel {}
-
-  class MyPrey extends Base_FeatureModel with P_MyPrey {
-    def move()(implicit context: api.Context): Unit = {
-      val eContext = context.asInstanceOf[nvm.ExtensionContext]
-      val world = context.getAgent.world.asInstanceOf[agent.World]
-      var t = eContext.getAgent.asInstanceOf[org.nlogo.agent.Turtle]
-
-      val r = scala.util.Random
-      t.heading((t.heading + (r.nextDouble()*50)) - (r.nextDouble()*50))
-      t.jump(1.0)
-
-      //reduce energy
-      var index = world.turtlesOwnIndexOf("ENERGY")
-      t.setVariable(index,(t.getVariable(index).asInstanceOf[Double]-1).toLogoObject)
-
-    }
-
-    def reproduce()(implicit context: api.Context): Unit = {
+    def reproduce()(implicit context: api.Context, r: scala.util.Random, t: agent.Turtle): Unit = {
       val eContext = context.asInstanceOf[nvm.ExtensionContext]
       val world = context.getAgent.world.asInstanceOf[agent.World]
       var index = world.turtlesOwnIndexOf("ENERGY")
-      var t = eContext.getAgent.asInstanceOf[org.nlogo.agent.Turtle]
-      val r = scala.util.Random
       var e : Double  = t.getVariable(index).asInstanceOf[Double]
       e = e / 2
       t.setVariable(index,e.toLogoObject)
@@ -171,19 +92,124 @@ object PreyActivity {
       c.heading(c.heading + (r.nextDouble()*360))
       c.jump(1.0)
     }
-    def death()(implicit context: api.Context): Unit = {
+
+    def death()(implicit context: api.Context, t: agent.Turtle): Unit = {
       val eContext = context.asInstanceOf[nvm.ExtensionContext]
       val world = context.getAgent.world.asInstanceOf[agent.World]
-      var t = eContext.getAgent.asInstanceOf[org.nlogo.agent.Turtle]
       var index = world.turtlesOwnIndexOf("ENERGY")
       if (t.getVariable(index).asInstanceOf[Double] < 0) t.die()
     }
 
-    def consume(e: Double)(implicit context: api.Context): Unit = {
+    def consume(e: Double)(implicit context: api.Context, t: agent.Turtle): Unit = {
       val world = context.getAgent.world.asInstanceOf[agent.World]
       val eContext = context.asInstanceOf[nvm.ExtensionContext]
       var index = world.turtlesOwnIndexOf("ENERGY")
+
       var t = eContext.getAgent.asInstanceOf[org.nlogo.agent.Turtle]
+      var p = t.getPatchHere
+
+      var trts = p.turtlesHere().iterator()
+      var found = false
+      while ((trts.hasNext()) && (found == false)) {
+        var b = trts.next()
+        if (b.getBreed().printName == "SHEEP") {
+          found = true
+          b.die()
+          t.setVariable(index, (t.getVariable(index).asInstanceOf[Double] + e).toLogoObject)
+        }
+      }
+
+
+
+    }
+
+  }
+
+
+  trait P_MyPred {
+
+    def move()(implicit context: api.Context, r: scala.util.Random, t: agent.Turtle): Unit
+
+    def reproduce()(implicit context: api.Context, r: scala.util.Random, t: agent.Turtle): Unit
+
+    def death()(implicit context: api.Context, t: agent.Turtle): Unit
+
+    def consume(e: Double)(implicit context: api.Context, t: agent.Turtle): Unit
+
+    def generateCommand(): PredatorAction = {
+      new PredatorAction
+    }
+
+
+    class PredatorAction extends Command with nvm.CustomAssembled {
+      override def getSyntax = Syntax.commandSyntax(right = List(NumberType, NumberType, CommandBlockType | OptionalType))
+
+      def perform(args: Array[api.Argument], context: api.Context): Unit = {
+        implicit val myContext: api.Context = context
+        val world = context.getAgent.world.asInstanceOf[agent.World]
+        val eContext = context.asInstanceOf[nvm.ExtensionContext]
+        val nvmContext = eContext.nvmContext
+
+        implicit var t = eContext.getAgent.asInstanceOf[agent.Turtle]
+        implicit val r = scala.util.Random
+
+        move()
+        consume(args(0).getDoubleValue)
+        death()
+        if (r.nextDouble() < (args(1).getDoubleValue*0.01)) reproduce()
+      }
+
+      def assemble(a: nvm.AssemblerAssistant): Unit = {
+        a.block()
+        a.done()
+      }
+    }
+
+  }
+
+}
+
+
+object PreyActivity {
+  class Base_FeatureModel {}
+
+  class MyPrey extends Base_FeatureModel with P_MyPrey {
+    def move()(implicit context: api.Context, r : scala.util.Random, t: agent.Turtle): Unit = {
+      val eContext = context.asInstanceOf[nvm.ExtensionContext]
+      val world = context.getAgent.world.asInstanceOf[agent.World]
+
+      t.heading((t.heading + (r.nextDouble()*50)) - (r.nextDouble()*50))
+      t.jump(1.0)
+
+      //reduce energy
+      var index = world.turtlesOwnIndexOf("ENERGY")
+      t.setVariable(index,(t.getVariable(index).asInstanceOf[Double]-1).toLogoObject)
+
+    }
+
+    def reproduce()(implicit context: api.Context, r : scala.util.Random, t: agent.Turtle) : Unit = {
+      val eContext = context.asInstanceOf[nvm.ExtensionContext]
+      val world = context.getAgent.world.asInstanceOf[agent.World]
+      var index = world.turtlesOwnIndexOf("ENERGY")
+      var e : Double  = t.getVariable(index).asInstanceOf[Double]
+      e = e / 2
+      t.setVariable(index,e.toLogoObject)
+      var c : org.nlogo.agent.Turtle = t.hatch(t.getBreed())
+      eContext.workspace.joinForeverButtons(c)
+      c.heading(c.heading + (r.nextDouble()*360))
+      c.jump(1.0)
+    }
+    def death()(implicit context: api.Context, t: agent.Turtle): Unit = {
+      val eContext = context.asInstanceOf[nvm.ExtensionContext]
+      val world = context.getAgent.world.asInstanceOf[agent.World]
+      var index = world.turtlesOwnIndexOf("ENERGY")
+      if (t.getVariable(index).asInstanceOf[Double] < 0) t.die()
+    }
+
+    def consume(e: Double)(implicit context: api.Context, t: agent.Turtle): Unit = {
+      val world = context.getAgent.world.asInstanceOf[agent.World]
+      val eContext = context.asInstanceOf[nvm.ExtensionContext]
+      var index = world.turtlesOwnIndexOf("ENERGY")
       var p = t.getPatchHere
       if (p.pcolor==Color.argbToColor(Color.getRGBByName("green"))) {
         p.setVariable(2, Color.argbToColor(Color.getRGBByName("brown")))
@@ -194,10 +220,10 @@ object PreyActivity {
   }
 
   trait P_MyPrey {
-    def move()(implicit context: api.Context): Unit
-    def reproduce()(implicit context: api.Context): Unit
-    def death()(implicit context: api.Context): Unit
-    def consume(e: Double)(implicit context: api.Context) : Unit
+    def move()(implicit context: api.Context, r : scala.util.Random, t: agent.Turtle): Unit
+    def reproduce()(implicit context: api.Context, r : scala.util.Random, t: agent.Turtle): Unit
+    def death()(implicit context: api.Context, t: agent.Turtle): Unit
+    def consume(e: Double)(implicit context: api.Context, t: agent.Turtle) : Unit
 
     def generateCommand(): PreyAction = {
       new PreyAction
@@ -212,16 +238,13 @@ object PreyActivity {
         val world = context.getAgent.world.asInstanceOf[agent.World]
         val eContext = context.asInstanceOf[nvm.ExtensionContext]
         val nvmContext = eContext.nvmContext
-
-        var t = eContext.getAgent.asInstanceOf[org.nlogo.agent.Turtle]
-        var index = world.turtlesOwnIndexOf("ENERGY")
-        val r = scala.util.Random
+        implicit var t = eContext.getAgent.asInstanceOf[agent.Turtle]
+        implicit val r = scala.util.Random
 
         move()
         consume(args(0).getDoubleValue)
         death()
         if (r.nextDouble() < (args(1).getDoubleValue*0.01)) reproduce()
-
       }
 
       def assemble(a: nvm.AssemblerAssistant): Unit = {
@@ -235,17 +258,62 @@ object PreyActivity {
 }
 
 
-object patchWithNoGrass_patchModel_base_AbstractBase {
+object patchWithGrass_patchModel_base_AbstractBase {
   trait patchWithGrass_MyPatch {
-    def generateCommand(): PatchSetUp = {
+    def generateCommandSetUp(): PatchSetUp = {
       new PatchSetUp
     }
+
+    def generateCommandGrow(): GrassGrow = {
+      new GrassGrow
+    }
+
+    class GrassGrow extends Command with nvm.CustomAssembled {
+      override def getSyntax = Syntax.commandSyntax(right = List(NumberType, CommandBlockType | OptionalType))
+
+      def perform(args: Array[api.Argument], context: api.Context): Unit = {
+        val eContext = context.asInstanceOf[nvm.ExtensionContext]
+        val world = context.getAgent.world.asInstanceOf[agent.World]
+        val nvmContext = eContext.nvmContext
+        val p: Patch = eContext.getAgent.asInstanceOf[Patch]
+        if (p.pcolor==Color.argbToColor(Color.getRGBByName("brown"))) {
+          var index = world.patchesOwnIndexOf("COUNTDOWN")
+          if (p.getVariable(index).asInstanceOf[Double] <= 0) {
+            p.setVariable(2, Color.argbToColor(Color.getRGBByName("green")))
+            var grt: Double = args(0).getDoubleValue
+            p.setVariable(index, grt.toLogoObject)
+          }
+          else
+            p.setVariable(index,(p.getVariable(index).asInstanceOf[Double]-1).toLogoObject)
+        }
+
+
+
+      }
+
+      def assemble(a: nvm.AssemblerAssistant): Unit = {
+        a.block()
+        a.done()
+      }
+    }
+
+
+
     class PatchSetUp extends Command with nvm.CustomAssembled {
       override def getSyntax = Syntax.commandSyntax(right = List(NumberType, CommandBlockType | OptionalType))
       def perform(args: Array[api.Argument], context: api.Context): Unit = {
         var pw = new PrintWriter(new File("/Users/yilmaz/IdeaProjects/example-scala/test.txt"))
         pw.println("Patch with grass set up")
         val world = context.getAgent.world.asInstanceOf[agent.World]
+
+        var bs=world.breeds.keySet().iterator
+        while (bs hasNext()) {
+          var x = bs.next()
+          pw.println(x)
+        }
+        pw.close()
+
+
         val eContext = context.asInstanceOf[nvm.ExtensionContext]
         val nvmContext = eContext.nvmContext
         var patchColor: String = null
@@ -265,7 +333,7 @@ object patchWithNoGrass_patchModel_base_AbstractBase {
         }
         else {
           pw.println("Patch color was " + p.pcolor)
-          world.patchChangedColorAt(p.id.asInstanceOf[Int], Color.argbToColor(Color.getRGBByName("brown")))
+          p.setVariable(2, Color.argbToColor(Color.getRGBByName("brown")))
           pw.println("Patch color is now " + p.pcolor)
           patchColor = "brown"
           p.setVariable(index, (r.nextDouble() * grt).toLogoObject)
@@ -286,6 +354,47 @@ object patchWithNoGrass_patchModel_base_AbstractBase {
   class Base_FeatureModel
 }
 
+
+object CreateSheeps extends api.Command with nvm.CustomAssembled {
+  override def getSyntax =
+    commandSyntax(right = List(NumberType, CommandBlockType | OptionalType),
+      agentClassString = "O---",
+      blockAgentClassString = Some("-T--"))
+
+  private val white = Double.box(9.9)
+
+  def perform(args: Array[api.Argument], context: api.Context): Unit = {
+    val n = args(0).getIntValue
+    val world = context.getAgent.world.asInstanceOf[agent.World]
+    val eContext = context.asInstanceOf[nvm.ExtensionContext]
+    val nvmContext = eContext.nvmContext
+    val r = scala.util.Random
+
+
+    val agents =
+      new agent.AgentSetBuilder(AgentKind.Turtle, n)
+
+    for(_ <- 0 until n) {
+      val turtle = world.createTurtle(world.turtles)
+      var sheeps  = world.breeds.get("SHEEP")
+      turtle.size(1.5)
+      turtle.colorDoubleUnchecked(white)
+      turtle.shape("sheep")
+      turtle.xandycor(r.nextDouble()*world.getDimensions.width,r.nextDouble()*world.getDimensions.height)
+      sheeps.add(turtle)
+      eContext.workspace.joinForeverButtons(turtle)
+    }
+    // if the optional command block wasn't supplied, then there's not
+    // really any point in calling this, but it won't bomb, either
+    nvmContext.runExclusiveJob(agents.build(), nvmContext.ip + 1)
+    // prim._extern will take care of leaving nvm.Context ip in the right place
+  }
+
+  def assemble(a: nvm.AssemblerAssistant) {
+    a.block()
+    a.done()
+  }
+}
 
 
 object CreateRedTurtles extends api.Command with nvm.CustomAssembled {
