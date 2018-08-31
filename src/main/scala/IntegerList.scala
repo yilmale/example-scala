@@ -109,6 +109,7 @@ object PredatorActivity {
       var p = t.getPatchHere
 
       var trts = p.turtlesHere().iterator()
+
       var found = false
       while ((trts.hasNext()) && (found == false)) {
         var b = trts.next()
@@ -118,8 +119,6 @@ object PredatorActivity {
           t.setVariable(index, (t.getVariable(index).asInstanceOf[Double] + e).toLogoObject)
         }
       }
-
-
 
     }
 
@@ -306,14 +305,6 @@ object patchWithGrass_patchModel_base_AbstractBase {
         pw.println("Patch with grass set up")
         val world = context.getAgent.world.asInstanceOf[agent.World]
 
-        var bs=world.breeds.keySet().iterator
-        while (bs hasNext()) {
-          var x = bs.next()
-          pw.println(x)
-        }
-        pw.close()
-
-
         val eContext = context.asInstanceOf[nvm.ExtensionContext]
         val nvmContext = eContext.nvmContext
         var patchColor: String = null
@@ -369,24 +360,24 @@ object CreateSheeps extends api.Command with nvm.CustomAssembled {
     val eContext = context.asInstanceOf[nvm.ExtensionContext]
     val nvmContext = eContext.nvmContext
     val r = scala.util.Random
-
-
-    val agents =
-      new agent.AgentSetBuilder(AgentKind.Turtle, n)
+    var index = world.turtlesOwnIndexOf("ENERGY")
 
     for(_ <- 0 until n) {
-      val turtle = world.createTurtle(world.turtles)
-      var sheeps  = world.breeds.get("SHEEP")
+      val turtle = world.createTurtle(world.breeds.get("SHEEP"))
       turtle.size(1.5)
       turtle.colorDoubleUnchecked(white)
+      turtle.setVariable(index,(2*4*r.nextDouble()).toLogoObject)
       turtle.shape("sheep")
       turtle.xandycor(r.nextDouble()*world.getDimensions.width,r.nextDouble()*world.getDimensions.height)
-      sheeps.add(turtle)
       eContext.workspace.joinForeverButtons(turtle)
     }
+
+    nvmContext.runExclusiveJob(world.breeds.get("SHEEP"), nvmContext.ip + 1)
+
+
     // if the optional command block wasn't supplied, then there's not
     // really any point in calling this, but it won't bomb, either
-    nvmContext.runExclusiveJob(agents.build(), nvmContext.ip + 1)
+    //nvmContext.runExclusiveJob(agents.build(), nvmContext.ip + 1)
     // prim._extern will take care of leaving nvm.Context ip in the right place
   }
 
